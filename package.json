@@ -1,0 +1,24 @@
+{
+  "name": "color-quest",
+  "version": "1.0.0",
+  "description": "Multiplayer Memory & Luck Board Game",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "board-game",
+    "multiplayer",
+    "memory",
+    "luck",
+    "3d",
+    "web-audio"
+  ],
+  "author": "Antigravity Pair Program",
+  "license": "ISC",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
