@@ -359,13 +359,56 @@ class UIManager {
       this.toggleTheme();
     });
 
-    document.getElementById('mobile-players-btn').addEventListener('click', () => {
+    const makeDraggable = (btn, onTap) => {
+      let startX, startY, offsetX, offsetY, dragging = false;
+
+      const onStart = (e) => {
+        const touch = e.touches ? e.touches[0] : e;
+        const rect = btn.getBoundingClientRect();
+        offsetX = touch.clientX - rect.left;
+        offsetY = touch.clientY - rect.top;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        dragging = false;
+        btn.style.transition = 'none';
+      };
+
+      const onMove = (e) => {
+        if (startX === undefined) return;
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) dragging = true;
+        if (dragging) {
+          e.preventDefault();
+          btn.style.left = (touch.clientX - offsetX) + 'px';
+          btn.style.top = (touch.clientY - offsetY) + 'px';
+          btn.style.right = 'auto';
+          btn.style.bottom = 'auto';
+        }
+      };
+
+      const onEnd = () => {
+        btn.style.transition = '';
+        if (!dragging) onTap();
+        startX = undefined;
+      };
+
+      btn.addEventListener('mousedown', onStart);
+      btn.addEventListener('touchstart', onStart, { passive: true });
+      document.addEventListener('mousemove', (e) => { if (startX !== undefined) onMove(e); });
+      document.addEventListener('touchmove', (e) => { if (startX !== undefined) onMove(e); }, { passive: false });
+      document.addEventListener('mouseup', () => { if (startX !== undefined) onEnd(); });
+      document.addEventListener('touchend', () => { if (startX !== undefined) onEnd(); });
+    };
+
+    makeDraggable(document.getElementById('mobile-players-btn'), () => {
       const leftSidebar = document.querySelector('.left-sidebar');
       leftSidebar.classList.toggle('drawer-open');
       document.querySelector('.right-sidebar').classList.remove('drawer-open');
     });
 
-    document.getElementById('mobile-status-btn').addEventListener('click', () => {
+    makeDraggable(document.getElementById('mobile-status-btn'), () => {
       const rightSidebar = document.querySelector('.right-sidebar');
       rightSidebar.classList.toggle('drawer-open');
       document.querySelector('.left-sidebar').classList.remove('drawer-open');

@@ -62,6 +62,10 @@ body.dark-theme {
   user-select: none;
 }
 
+html {
+  min-width: 360px;
+}
+
 body {
   font-family: var(--font-family-body);
   background-color: var(--bg-primary);
@@ -70,6 +74,7 @@ body {
     radial-gradient(at 100% 100%, rgba(255, 237, 213, 0.75) 0px, transparent 50%);
   color: var(--text-main);
   min-height: 100vh;
+  min-width: 360px;
   overflow: hidden;
   position: relative;
 }
@@ -1196,20 +1201,39 @@ button {
   .responsive-hud-btn {
     display: flex !important;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 100;
-    box-shadow: 0 4px 15px rgba(124, 45, 18, 0.15);
+    position: fixed;
+    z-index: 1000;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 1.2rem;
+    cursor: grab;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+    touch-action: none;
+    user-select: none;
+    transition: box-shadow var(--transition-fast);
+  }
+
+  .responsive-hud-btn:active {
+    cursor: grabbing;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+
+  .responsive-hud-btn .btn-label {
+    display: none;
   }
 
   #mobile-players-btn {
-    left: 20px;
+    bottom: 100px;
+    left: 16px;
   }
 
   #mobile-status-btn {
-    right: 20px;
+    bottom: 100px;
+    right: 16px;
   }
 
   .game-container {
@@ -1288,6 +1312,74 @@ button {
 
   .logo-text {
     font-size: 2.3rem;
+  }
+
+  .game-header {
+    padding: 0 12px;
+    height: 56px;
+    flex-wrap: wrap;
+  }
+
+  .header-left, .header-right {
+    gap: 6px;
+  }
+
+  .game-header .glass-btn {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+  }
+
+  .game-header .glass-btn .btn-text {
+    display: none;
+  }
+
+  .header-center h2 {
+    font-size: 1.1rem;
+  }
+
+  .game-container {
+    height: calc(100vh - 56px);
+  }
+}
+
+@media (max-width: 600px) {
+  .header-center {
+    display: none;
+  }
+
+  .game-header {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --hole-size: 24px;
+    --pawn-size: 22px;
+    --die-size: 28px;
+  }
+
+  .game-header {
+    padding: 0 8px;
+    height: 48px;
+  }
+
+  .game-header .glass-btn {
+    font-size: 0.7rem;
+    padding: 5px 6px;
+  }
+
+  .game-container {
+    height: calc(100vh - 48px);
+    padding: 6px;
+  }
+
+  .logo-text {
+    font-size: 1.8rem;
+  }
+
+  .menu-container {
+    padding: 14px;
   }
 }
 

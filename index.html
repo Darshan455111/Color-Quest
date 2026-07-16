@@ -104,12 +104,6 @@
 
         <div class="menu-buttons">
           <button id="start-game-btn" class="primary-btn">Start Game</button>
-          <button id="rules-btn" class="secondary-btn">How To Play</button>
-          <button id="menu-theme-toggle" class="secondary-btn theme-toggle-btn">🌙 Dark Mode</button>
-          <div class="audio-controller secondary-btn">
-            <button class="sound-toggle-btn" aria-label="Toggle Sound">🔊</button>
-            <input type="range" class="volume-slider" min="0" max="100" value="50" step="5" aria-label="Volume">
-          </div>
           <button id="load-saved-btn" class="secondary-btn hidden">Resume Saved Game</button>
         </div>
       </div>
@@ -121,9 +115,9 @@
     <!-- Top Navigation Bar -->
     <header class="game-header">
       <div class="header-left">
-        <button id="pause-btn" class="glass-btn">⏸ Pause</button>
-        <button id="game-rules-btn" class="glass-btn">ℹ Rules</button>
-        <button id="header-theme-toggle" class="glass-btn theme-toggle-btn">🌙 Dark Mode</button>
+        <button id="pause-btn" class="glass-btn">⏸<span class="btn-text"> Pause</span></button>
+        <button id="game-rules-btn" class="glass-btn">ℹ<span class="btn-text"> Rules</span></button>
+        <button id="header-theme-toggle" class="glass-btn theme-toggle-btn">🌙<span class="btn-text"> Dark Mode</span></button>
         <span id="connection-status-dot" class="hidden" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #27ae60; margin-left: 5px; vertical-align: middle;" title="Online Status"></span>
       </div>
       <div class="header-center">
@@ -134,12 +128,15 @@
           <button class="sound-toggle-btn" aria-label="Toggle Sound">🔊</button>
           <input type="range" class="volume-slider" min="0" max="100" value="50" step="5" aria-label="Volume">
         </div>
-        <button id="restart-game-btn" class="glass-btn danger-btn">🔄 Restart</button>
-        <button id="quit-game-btn" class="glass-btn">🚪 Exit</button>
+        <button id="restart-game-btn" class="glass-btn danger-btn">🔄<span class="btn-text"> Restart</span></button>
+        <button id="quit-game-btn" class="glass-btn">🚪<span class="btn-text"> Exit</span></button>
       </div>
     </header>
 
-    <!-- Main Game Workspace -->
+    <!-- Mobile Floating HUD Buttons (direct child of game-screen to avoid perspective breaking position:fixed) -->
+    <button id="mobile-players-btn" class="glass-btn responsive-hud-btn" style="display: none;">👥<span class="btn-label"> Players</span></button>
+    <button id="mobile-status-btn" class="glass-btn responsive-hud-btn" style="display: none;">🎯<span class="btn-label"> Target</span></button>
+
     <main class="game-container">
       <!-- Left Panel: Scoreboard & Player List -->
       <aside class="sidebar left-sidebar">
@@ -153,8 +150,6 @@
 
       <!-- Center Panel: Circular Board Container -->
       <section class="board-area">
-        <button id="mobile-players-btn" class="glass-btn responsive-hud-btn" style="display: none;">👥 Players</button>
-        <button id="mobile-status-btn" class="glass-btn responsive-hud-btn" style="display: none;">🎯 Target</button>
         <div class="board-3d-wrapper">
           <div id="circular-board" class="circular-board">
             <!-- Holes (24) and pawns will be placed around this circle -->
