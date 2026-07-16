@@ -10,6 +10,7 @@ class Game {
     this.rolledColor = null;
     this.selectedPawn = null;
     this.remainingPawns = 24;
+    this.colorCount = 6;
     
     this.onStateChange = null;
     this.onLog = null;
@@ -33,9 +34,10 @@ class Game {
     this.activeTimeouts = [];
   }
 
-  startNewGame(playersConfig) {
+  startNewGame(playersConfig, colorCount) {
     this.clearAllTimeouts();
 
+    this.colorCount = colorCount || 6;
     this.players = playersConfig.map((config, index) => ({
       id: index,
       name: config.name.trim() || `Player ${index + 1}`,
@@ -53,7 +55,7 @@ class Game {
     this.remainingPawns = 24;
 
     const botCount = this.players.filter(p => p.isComputer).length;
-    this.log(`New Game started with ${this.players.length} players! (Humans: ${this.players.length - botCount}, Bots: ${botCount})`, 'system');
+    this.log(`New Game started with ${this.players.length} players! (Difficulty: ${this.colorCount} colors, Bots: ${botCount})`, 'system');
 
     this.board.initHoles();
     this.shuffleAndPlacePawns();
@@ -64,11 +66,13 @@ class Game {
   }
 
   shuffleAndPlacePawns() {
-    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
+    const allColors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
+    const colors = allColors.slice(0, this.colorCount);
     const pawnPool = [];
+    const pawnsPerColor = 24 / this.colorCount;
 
     colors.forEach(color => {
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < pawnsPerColor; i++) {
         pawnPool.push(color);
       }
     });
@@ -78,22 +82,34 @@ class Game {
       [pawnPool[i], pawnPool[j]] = [pawnPool[j], pawnPool[i]];
     }
 
-    pawnPool.forEach((color, index) => {
-      const pawn = new Pawn(index, color, index);
-      this.board.placePawn(pawn, index);
-    });
+    for (let i = 0; i < 24; i++) {
+      if (i < pawnPool.length) {
+        const pawn = new Pawn(i, pawnPool[i], i);
+        this.board.placePawn(pawn, i);
+      } else {
+        this.board.clearHole(i);
+      }
+    }
 
     this.log('The board has been set. The hidden colors are randomized!', 'info');
   }
 
-  rollDie() {
+  rollDie(forcedColor = null, isRemote = false) {
     if (this.phase !== 'ROLLING') return;
 
     this.phase = 'REVEALING';
     this.notifyState();
 
-    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
-    const rollResult = colors[Math.floor(Math.random() * colors.length)];
+    const allColors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
+    const colors = allColors.slice(0, this.colorCount);
+    const rollResult = forcedColor || colors[Math.floor(Math.random() * colors.length)];
+
+    if (window.NetworkManager && window.NetworkManager.active && !isRemote) {
+      window.NetworkManager.send({
+        type: 'ROLL_DIE',
+        color: rollResult
+      });
+    }
 
     this.die.roll(rollResult, (color) => {
       this.rolledColor = color;
@@ -107,8 +123,15 @@ class Game {
     });
   }
 
-  selectPawn(holeIndex) {
+  selectPawn(holeIndex, isRemote = false) {
     if (this.phase !== 'CHOOSING') return;
+
+    if (window.NetworkManager && window.NetworkManager.active && !isRemote) {
+      window.NetworkManager.send({
+        type: 'SELECT_PAWN',
+        holeIndex: holeIndex
+      });
+    }
 
     const hole = this.board.holes[holeIndex];
     if (!hole || !hole.occupied || !hole.pawn) return;
@@ -229,6 +252,10 @@ class Game {
 
     const activePlayer = this.getActivePlayer();
     if (activePlayer && activePlayer.isComputer) {
+      if (window.NetworkManager && window.NetworkManager.active && !window.NetworkManager.isHost) {
+        return;
+      }
+
       this.phase = 'REVEALING';
       this.notifyState();
 
@@ -241,6 +268,10 @@ class Game {
   }
 
   makeComputerChoice() {
+    if (window.NetworkManager && window.NetworkManager.active && !window.NetworkManager.isHost) {
+      return;
+    }
+
     this.phase = 'REVEALING';
     this.notifyState();
 
@@ -307,6 +338,7 @@ class Game {
       phase: this.phase,
       rolledColor: this.rolledColor,
       remainingPawns: this.remainingPawns,
+      colorCount: this.colorCount,
       boardLayout: this.board.holes.map(hole => {
         if (hole.occupied && hole.pawn) {
           return {
@@ -341,6 +373,7 @@ class Game {
       this.phase = state.phase;
       this.rolledColor = state.rolledColor;
       this.remainingPawns = state.remainingPawns;
+      this.colorCount = state.colorCount || 6;
 
       this.board.initHoles();
       state.boardLayout.forEach((pawnData, index) => {

@@ -80,8 +80,20 @@ class SoundEngine {
         e.preventDefault();
         e.stopPropagation();
         this.initContext();
-        this.toggleMute();
-        updateUIState();
+        
+        const controller = newBtn.closest('.audio-controller');
+        if (controller) {
+          if (!controller.classList.contains('slider-open')) {
+            document.querySelectorAll('.audio-controller').forEach(c => c.classList.remove('slider-open'));
+            controller.classList.add('slider-open');
+          } else {
+            this.toggleMute();
+            updateUIState();
+          }
+        } else {
+          this.toggleMute();
+          updateUIState();
+        }
       });
     });
 
@@ -91,12 +103,22 @@ class SoundEngine {
         slider.parentNode.replaceChild(newSlider, slider);
       }
 
+      newSlider.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+
       newSlider.addEventListener('input', (e) => {
         e.stopPropagation();
         this.initContext();
         const value = parseInt(e.target.value) / 100;
         this.setVolume(value);
         updateUIState();
+      });
+    });
+
+    document.addEventListener('click', () => {
+      document.querySelectorAll('.audio-controller').forEach(c => {
+        c.classList.remove('slider-open');
       });
     });
   }

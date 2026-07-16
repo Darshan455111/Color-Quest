@@ -14,6 +14,10 @@ class UIManager {
     this.victoryConfettiActive = false;
 
     this.playerCount = 3;
+    this.colorCount = 6;
+
+    this.networkManager = new NetworkManagerClass(this);
+    window.NetworkManager = this.networkManager;
 
     this.init();
   }
@@ -38,14 +42,6 @@ class UIManager {
     this.bindModalEvents();
     this.checkResumeAvailability();
     this.initTheme();
-
-    if (this.game.hasSavedGame()) {
-      this.switchScreen('game-screen');
-      const loaded = this.game.loadGame();
-      if (!loaded) {
-        this.switchScreen('main-menu');
-      }
-    }
 
     this.renderNameInputFields(this.playerCount);
     this.tickParticles();
@@ -195,14 +191,117 @@ class UIManager {
   }
 
   bindMenuEvents() {
+    // Mode selector buttons (Pass & Play vs Play Online)
+    document.getElementById('mode-local-btn').addEventListener('click', (e) => {
+      document.getElementById('mode-online-btn').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('local-setup-container').classList.remove('hidden');
+      document.getElementById('online-setup-container').classList.add('hidden');
+    });
+
+    document.getElementById('mode-online-btn').addEventListener('click', (e) => {
+      document.getElementById('mode-local-btn').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('local-setup-container').classList.add('hidden');
+      document.getElementById('online-setup-container').classList.remove('hidden');
+    });
+
+    // Online Choice selector buttons (Create vs Join)
+    document.getElementById('btn-choice-create').addEventListener('click', (e) => {
+      document.getElementById('btn-choice-join').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('panel-create-room').classList.remove('hidden');
+      document.getElementById('panel-join-room').classList.add('hidden');
+      document.getElementById('btn-start-online').classList.add('hidden');
+    });
+
+    document.getElementById('btn-choice-join').addEventListener('click', (e) => {
+      document.getElementById('btn-choice-create').classList.remove('active');
+      e.target.classList.add('active');
+      document.getElementById('panel-join-room').classList.remove('hidden');
+      document.getElementById('panel-create-room').classList.add('hidden');
+      document.getElementById('btn-start-online').classList.add('hidden');
+    });
+
+    // Create Room button clicks
+    document.getElementById('btn-generate-room').addEventListener('click', () => {
+      const name = document.getElementById('online-player-name').value.trim() || 'Host';
+      this.networkManager.createRoom(name);
+      document.getElementById('btn-generate-room').classList.add('hidden');
+    });
+
+    // Copy Code button clicks
+    document.getElementById('btn-copy-code').addEventListener('click', () => {
+      const code = document.getElementById('val-room-code').innerText;
+      if (code && code !== '-') {
+        navigator.clipboard.writeText(code).then(() => {
+          const btn = document.getElementById('btn-copy-code');
+          const oldText = btn.innerText;
+          btn.innerText = '✔️ Copied!';
+          setTimeout(() => {
+            btn.innerText = oldText;
+          }, 1000);
+        });
+      }
+    });
+
+    // Join Room button clicks
+    document.getElementById('btn-connect-room').addEventListener('click', () => {
+      const name = document.getElementById('online-player-name').value.trim() || 'Guest';
+      const code = document.getElementById('input-room-code').value.trim();
+      if (!code) {
+        alert('Please enter a room code.');
+        return;
+      }
+      this.networkManager.joinRoom(code, name);
+    });
+
+    // Start Online Game (Host button)
+    document.getElementById('btn-start-online').addEventListener('click', () => {
+      const players = [
+        { id: 0, name: this.networkManager.localName, isComputer: false, score: 0, collectedPawns: [] },
+        { id: 1, name: this.networkManager.remoteName, isComputer: false, score: 0, collectedPawns: [] }
+      ];
+      
+      const boardLayout = this.game.board.holes.map(hole => {
+        if (hole.occupied && hole.pawn) {
+          return { id: hole.pawn.id, color: hole.pawn.color };
+        }
+        return null;
+      });
+
+      const startPayload = {
+        type: 'START_MATCH',
+        colorCount: this.colorCount,
+        players: players,
+        boardLayout: boardLayout
+      };
+
+      this.networkManager.send(startPayload);
+      this.networkManager.handleIncomingData(startPayload);
+    });
+
     const countBtns = document.querySelectorAll('.count-btn');
     countBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
+        if (e.target.id === 'mode-local-btn' || e.target.id === 'mode-online-btn' || 
+            e.target.id === 'btn-choice-create' || e.target.id === 'btn-choice-join') {
+          return;
+        }
         countBtns.forEach(b => b.classList.remove('active'));
         e.target.classList.add('active');
         
         this.playerCount = parseInt(e.target.getAttribute('data-players'));
         this.renderNameInputFields(this.playerCount);
+      });
+    });
+
+    const diffBtns = document.querySelectorAll('.diff-btn');
+    diffBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        diffBtns.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        this.colorCount = parseInt(e.target.getAttribute('data-colors'));
       });
     });
 
@@ -217,7 +316,7 @@ class UIManager {
       });
       
       this.switchScreen('game-screen');
-      this.game.startNewGame(configs);
+      this.game.startNewGame(configs, this.colorCount);
       this.checkResumeAvailability();
     });
 
@@ -227,7 +326,7 @@ class UIManager {
       if (!loaded) {
         alert('Could not resume save game. Starting fresh.');
         const names = ['Player 1', 'Player 2', 'Player 3'];
-        this.game.startNewGame(names);
+        this.game.startNewGame(names, 6);
       }
     });
 
@@ -242,6 +341,9 @@ class UIManager {
 
   bindGameplayEvents() {
     document.getElementById('roll-die-btn').addEventListener('click', () => {
+      if (window.NetworkManager && window.NetworkManager.active) {
+        if (!window.NetworkManager.isLocalTurn()) return;
+      }
       this.game.rollDie();
     });
 
@@ -257,20 +359,43 @@ class UIManager {
       this.toggleTheme();
     });
 
+    document.getElementById('mobile-players-btn').addEventListener('click', () => {
+      const leftSidebar = document.querySelector('.left-sidebar');
+      leftSidebar.classList.toggle('drawer-open');
+      document.querySelector('.right-sidebar').classList.remove('drawer-open');
+    });
+
+    document.getElementById('mobile-status-btn').addEventListener('click', () => {
+      const rightSidebar = document.querySelector('.right-sidebar');
+      rightSidebar.classList.toggle('drawer-open');
+      document.querySelector('.left-sidebar').classList.remove('drawer-open');
+    });
+
     document.getElementById('restart-game-btn').addEventListener('click', async () => {
+      if (window.NetworkManager && window.NetworkManager.active && !window.NetworkManager.isHost) {
+        alert('Only the Host can restart the online match.');
+        return;
+      }
       const confirmed = await this.showConfirm('Are you sure you want to restart? This resets scores and shuffles pawns.', 'Restart Match?');
       if (confirmed) {
+        if (window.NetworkManager && window.NetworkManager.active) {
+          window.NetworkManager.send({ type: 'RESTART_GAME' });
+        }
         const configs = this.game.players.map(p => ({
           name: p.name,
           isComputer: p.isComputer
         }));
-        this.game.startNewGame(configs);
+        this.game.startNewGame(configs, this.colorCount);
       }
     });
 
     document.getElementById('quit-game-btn').addEventListener('click', async () => {
       const confirmed = await this.showConfirm('Exit current match and return to Main Menu? Unsaved progress will be lost.', 'Quit Match?');
       if (confirmed) {
+        if (window.NetworkManager && window.NetworkManager.active) {
+          window.NetworkManager.disconnect();
+        }
+        document.getElementById('connection-status-dot').classList.add('hidden');
         this.switchScreen('main-menu');
         this.checkResumeAvailability();
       }
@@ -278,6 +403,12 @@ class UIManager {
 
     const boardEl = document.getElementById('circular-board');
     boardEl.addEventListener('click', (e) => {
+      document.querySelector('.left-sidebar').classList.remove('drawer-open');
+      document.querySelector('.right-sidebar').classList.remove('drawer-open');
+
+      if (window.NetworkManager && window.NetworkManager.active) {
+        if (!window.NetworkManager.isLocalTurn()) return;
+      }
       const hole = e.target.closest('.board-hole');
       if (hole && !hole.classList.contains('empty')) {
         const index = parseInt(hole.getAttribute('data-hole-index'));
@@ -316,14 +447,21 @@ class UIManager {
     });
     
     document.getElementById('pause-restart-btn').addEventListener('click', async () => {
+      if (window.NetworkManager && window.NetworkManager.active && !window.NetworkManager.isHost) {
+        alert('Only the Host can restart the online match.');
+        return;
+      }
       const confirmed = await this.showConfirm('Restart game from scratch?', 'Restart Match?');
       if (confirmed) {
         this.hideModal('pause-modal');
+        if (window.NetworkManager && window.NetworkManager.active) {
+          window.NetworkManager.send({ type: 'RESTART_GAME' });
+        }
         const configs = this.game.players.map(p => ({
           name: p.name,
           isComputer: p.isComputer
         }));
-        this.game.startNewGame(configs);
+        this.game.startNewGame(configs, this.colorCount);
       }
     });
     
@@ -331,23 +469,38 @@ class UIManager {
       const confirmed = await this.showConfirm('Return to main menu?', 'Exit Match?');
       if (confirmed) {
         this.hideModal('pause-modal');
+        if (window.NetworkManager && window.NetworkManager.active) {
+          window.NetworkManager.disconnect();
+        }
+        document.getElementById('connection-status-dot').classList.add('hidden');
         this.switchScreen('main-menu');
         this.checkResumeAvailability();
       }
     });
 
     document.getElementById('play-again-btn').addEventListener('click', () => {
+      if (window.NetworkManager && window.NetworkManager.active && !window.NetworkManager.isHost) {
+        alert('Only the Host can restart the online match.');
+        return;
+      }
       this.hideModal('victory-modal');
       this.victoryConfettiActive = false;
+      if (window.NetworkManager && window.NetworkManager.active) {
+        window.NetworkManager.send({ type: 'RESTART_GAME' });
+      }
       const configs = this.game.players.map(p => ({
         name: p.name,
         isComputer: p.isComputer
       }));
-      this.game.startNewGame(configs);
+      this.game.startNewGame(configs, this.colorCount);
     });
 
     document.getElementById('victory-exit-btn').addEventListener('click', () => {
       this.game.clearSave();
+      if (window.NetworkManager && window.NetworkManager.active) {
+        window.NetworkManager.disconnect();
+      }
+      document.getElementById('connection-status-dot').classList.add('hidden');
       this.hideModal('victory-modal');
       this.victoryConfettiActive = false;
       this.switchScreen('main-menu');

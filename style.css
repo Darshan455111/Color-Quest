@@ -150,6 +150,10 @@ body.dark-theme {
   background-clip: text;
 }
 
+.responsive-hud-btn {
+  display: none !important;
+}
+
 button {
   cursor: pointer;
   border: none;
@@ -268,12 +272,12 @@ button {
   margin-bottom: 25px;
 }
 
-.player-count-buttons {
+.player-count-buttons, .difficulty-buttons {
   display: flex;
   gap: 10px;
 }
 
-.count-btn {
+.count-btn, .diff-btn {
   flex: 1;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
@@ -283,14 +287,14 @@ button {
   font-size: 1rem;
 }
 
-.count-btn.active {
+.count-btn.active, .diff-btn.active {
   background: rgba(249, 115, 22, 0.15);
   border-color: #ea580c;
   color: #ea580c;
   box-shadow: 0 0 15px rgba(249, 115, 22, 0.1);
 }
 
-.count-btn:hover:not(.active) {
+.count-btn:hover:not(.active), .diff-btn:hover:not(.active) {
   background: var(--bg-secondary);
   color: var(--text-main);
 }
@@ -343,13 +347,18 @@ button {
 .audio-controller {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0px;
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   padding: 6px 16px;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.02);
   height: 42px;
+  transition: gap var(--transition-fast);
+}
+
+.audio-controller.slider-open {
+  gap: 12px;
 }
 
 .menu-buttons .audio-controller {
@@ -380,7 +389,8 @@ button {
 .audio-controller input.volume-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 75px;
+  width: 0px;
+  opacity: 0;
   height: 4px;
   border-radius: 2px;
   background: #cbd5e1;
@@ -388,6 +398,14 @@ button {
   cursor: pointer;
   border: none;
   padding: 0;
+  pointer-events: none;
+  transition: width var(--transition-fast), opacity var(--transition-fast);
+}
+
+.audio-controller.slider-open input.volume-slider {
+  width: 75px;
+  opacity: 1;
+  pointer-events: all;
 }
 
 .audio-controller input.volume-slider::-webkit-slider-thumb {
@@ -1175,17 +1193,80 @@ button {
     --die-size: 42px;
   }
 
+  .responsive-hud-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    box-shadow: 0 4px 15px rgba(124, 45, 18, 0.15);
+  }
+
+  #mobile-players-btn {
+    left: 20px;
+  }
+
+  #mobile-status-btn {
+    right: 20px;
+  }
+
   .game-container {
-    grid-template-columns: 240px 1fr;
-    grid-template-rows: auto 1fr;
-    gap: 15px;
-    height: calc(100vh - 70px);
-    overflow-y: auto;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: 1fr !important;
+    padding: 10px;
+    position: relative;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 70px;
+    bottom: 0;
+    width: 280px;
+    height: calc(100vh - 70px) !important;
+    z-index: 999;
+    background: var(--panel-bg);
+    backdrop-filter: blur(25px) saturate(180%);
+    -webkit-backdrop-filter: blur(25px) saturate(180%);
+    transition: transform var(--transition-medium);
+    margin: 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .left-sidebar {
+    left: 0;
+    transform: translateX(-100%);
+    border-right: 1px solid var(--panel-border);
+    border-left: none;
+  }
+
+  .left-sidebar.drawer-open {
+    transform: translateX(0);
   }
 
   .right-sidebar {
-    grid-column: 1 / -1;
-    height: auto;
+    right: 0;
+    transform: translateX(100%);
+    border-left: 1px solid var(--panel-border);
+    border-right: none;
+    grid-column: auto;
+  }
+
+  .right-sidebar.drawer-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-card {
+    border-radius: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .board-area {
+    grid-column: 1;
+    z-index: 10;
   }
 }
 
@@ -1194,22 +1275,6 @@ button {
     --hole-size: 30px;
     --pawn-size: 28px;
     --die-size: 34px;
-  }
-
-  body {
-    overflow-y: auto;
-  }
-
-  .game-container {
-    display: flex;
-    flex-direction: column;
-    height: auto;
-    padding: 12px;
-  }
-
-  .left-sidebar, .right-sidebar {
-    width: 100%;
-    height: auto;
   }
 
   .board-area {
