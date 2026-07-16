@@ -52,7 +52,7 @@ class Pawn {
     const baseColor = document.createElement('div');
     baseColor.className = 'pawn-base-color';
     baseColor.style.backgroundColor = this.getColorHex(this.color);
-    baseColor.style.boxShadow = `inset 0 0 10px rgba(0,0,0,0.6), 0 0 15px ${this.getColorHex(this.color)}`;
+    baseColor.style.boxShadow = 'inset 0 0 8px rgba(0, 0, 0, 0.4)';
 
     pawn3d.appendChild(stem);
     pawn3d.appendChild(baseColor);

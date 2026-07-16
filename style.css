@@ -639,6 +639,7 @@ button {
   justify-content: center;
   z-index: 5;
   gap: 10px;
+  transform-style: preserve-3d;
 }
 
 .roll-btn {
@@ -810,10 +811,12 @@ button {
   width: 60px;
   height: 60px;
   position: relative;
-  perspective: 600px;
+  perspective: 1000px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transform-style: preserve-3d;
+  transform: translateZ(35px);
 }
 
 .die-cube {
@@ -821,7 +824,7 @@ button {
   height: 50px;
   position: absolute;
   transform-style: preserve-3d;
-  transition: transform 1.5s cubic-bezier(0.2, 0.8, 0.3, 1.05);
+  transition: transform 1.6s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* Dice faces */
@@ -830,9 +833,9 @@ button {
   width: 50px;
   height: 50px;
   border-radius: 8px;
-  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.2);
   box-shadow: 
-    inset 0 0 10px rgba(0, 0, 0, 0.12),
+    inset 0 0 12px rgba(0, 0, 0, 0.25),
     0 2px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
