@@ -14,11 +14,6 @@
   <!-- Interactive Background Particles Canvas -->
   <canvas id="particle-canvas"></canvas>
 
-  <!-- Sound Toggle Controller -->
-  <button id="sound-toggle" aria-label="Toggle Sound" class="glass-btn float-btn">
-    <span class="icon">🔊</span>
-  </button>
-
   <!-- MAIN MENU SCREEN -->
   <div id="main-menu" class="screen active">
     <div class="menu-container glass-panel">
@@ -48,6 +43,11 @@
         <div class="menu-buttons">
           <button id="start-game-btn" class="primary-btn">Start Game</button>
           <button id="rules-btn" class="secondary-btn">How To Play</button>
+          <button id="menu-theme-toggle" class="secondary-btn theme-toggle-btn">🌙 Dark Mode</button>
+          <div class="audio-controller secondary-btn">
+            <button class="sound-toggle-btn" aria-label="Toggle Sound">🔊</button>
+            <input type="range" class="volume-slider" min="0" max="100" value="50" step="5" aria-label="Volume">
+          </div>
           <button id="load-saved-btn" class="secondary-btn hidden">Resume Saved Game</button>
         </div>
       </div>
@@ -61,11 +61,16 @@
       <div class="header-left">
         <button id="pause-btn" class="glass-btn">⏸ Pause</button>
         <button id="game-rules-btn" class="glass-btn">ℹ Rules</button>
+        <button id="header-theme-toggle" class="glass-btn theme-toggle-btn">🌙 Dark Mode</button>
       </div>
       <div class="header-center">
         <h2>COLOR <span class="gradient-text">QUEST</span></h2>
       </div>
       <div class="header-right">
+        <div class="audio-controller glass-btn">
+          <button class="sound-toggle-btn" aria-label="Toggle Sound">🔊</button>
+          <input type="range" class="volume-slider" min="0" max="100" value="50" step="5" aria-label="Volume">
+        </div>
         <button id="restart-game-btn" class="glass-btn danger-btn">🔄 Restart</button>
         <button id="quit-game-btn" class="glass-btn">🚪 Exit</button>
       </div>
@@ -195,6 +200,18 @@
       <div class="victory-buttons">
         <button id="play-again-btn" class="primary-btn">Play Again</button>
         <button id="victory-exit-btn" class="secondary-btn">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRMATION MODAL -->
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content glass-panel compact-modal">
+      <h2 id="confirm-title" class="modal-title">Confirm Action</h2>
+      <p id="confirm-message" style="text-align: center; color: var(--text-muted); line-height: 1.5; margin: 10px 0;"></p>
+      <div class="confirm-buttons" style="display: flex; gap: 12px; width: 100%;">
+        <button id="confirm-yes-btn" class="primary-btn" style="flex: 1; padding: 10px; font-size: 0.95rem;">Yes</button>
+        <button id="confirm-no-btn" class="secondary-btn" style="flex: 1; padding: 10px; font-size: 0.95rem;">No</button>
       </div>
     </div>
   </div>

@@ -1,40 +1,104 @@
-/**
- * Color Quest - Web Audio Synthesis Sound Engine
- * Synthesizes board game sound effects dynamically in real-time.
- */
 class SoundEngine {
   constructor() {
     this.ctx = null;
+    this.masterGain = null;
     this.muted = localStorage.getItem('color_quest_muted') === 'true';
+    
+    const savedVol = localStorage.getItem('color_quest_volume');
+    this.volume = savedVol !== null ? parseFloat(savedVol) : 0.5;
+
     this.setupToggleUI();
   }
 
-  // Lazy-initialization of AudioContext (browser security requirement)
   initContext() {
     if (!this.ctx) {
       this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.connect(this.ctx.destination);
+      this.updateMasterVolume();
     }
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
   }
 
+  updateMasterVolume() {
+    if (!this.masterGain) return;
+    const targetGain = this.muted ? 0 : this.volume;
+    this.masterGain.gain.setValueAtTime(targetGain, this.ctx.currentTime);
+  }
+
   toggleMute() {
     this.muted = !this.muted;
     localStorage.setItem('color_quest_muted', this.muted);
+    this.updateMasterVolume();
+    return this.muted;
+  }
+
+  setVolume(value) {
+    this.volume = Math.max(0, Math.min(1, value));
+    localStorage.setItem('color_quest_volume', this.volume);
+    
+    if (this.volume > 0 && this.muted) {
+      this.muted = false;
+      localStorage.setItem('color_quest_muted', 'false');
+    } else if (this.volume === 0 && !this.muted) {
+      this.muted = true;
+      localStorage.setItem('color_quest_muted', 'true');
+    }
+    
+    this.updateMasterVolume();
     return this.muted;
   }
 
   setupToggleUI() {
-    const btn = document.getElementById('sound-toggle');
-    if (btn) {
-      btn.innerHTML = `<span class="icon">${this.muted ? '🔇' : '🔊'}</span>`;
-      btn.addEventListener('click', () => {
-        this.initContext();
-        const isMuted = this.toggleMute();
-        btn.innerHTML = `<span class="icon">${isMuted ? '🔇' : '🔊'}</span>`;
+    const btns = document.querySelectorAll('.sound-toggle-btn');
+    const sliders = document.querySelectorAll('.volume-slider');
+    
+    const updateUIState = () => {
+      const activeBtns = document.querySelectorAll('.sound-toggle-btn');
+      const activeSliders = document.querySelectorAll('.volume-slider');
+
+      activeBtns.forEach(btn => {
+        btn.innerHTML = this.muted ? '🔇' : '🔊';
       });
-    }
+      
+      activeSliders.forEach(slider => {
+        slider.value = this.muted ? 0 : Math.round(this.volume * 100);
+      });
+    };
+
+    updateUIState();
+
+    btns.forEach(btn => {
+      const newBtn = btn.cloneNode(true);
+      if (btn.parentNode) {
+        btn.parentNode.replaceChild(newBtn, btn);
+      }
+      
+      newBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.initContext();
+        this.toggleMute();
+        updateUIState();
+      });
+    });
+
+    sliders.forEach(slider => {
+      const newSlider = slider.cloneNode(true);
+      if (slider.parentNode) {
+        slider.parentNode.replaceChild(newSlider, slider);
+      }
+
+      newSlider.addEventListener('input', (e) => {
+        e.stopPropagation();
+        this.initContext();
+        const value = parseInt(e.target.value) / 100;
+        this.setVolume(value);
+        updateUIState();
+      });
+    });
   }
 
   createOscillator(type, freq, duration, startVol = 0.15) {
@@ -51,25 +115,19 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
 
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     return { osc, gain };
   }
 
-  /**
-   * Play Dice Roll Sound:
-   * Simulates a rolling/rattling die by scheduling a series of rapid pitch bursts
-   */
   playRoll() {
     if (this.muted) return;
     this.initContext();
 
-    const now = this.ctx.currentTime;
     const bounces = 10;
     const duration = 1.2;
 
     for (let i = 0; i < bounces; i++) {
-      // Schedule individual bounces at increasing intervals (decelerating roll)
       const delay = Math.pow(i / (bounces - 1), 1.5) * (duration - 0.15);
       
       setTimeout(() => {
@@ -77,13 +135,11 @@ class SoundEngine {
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
-        // Dynamic filters for woody/plastic dice impact
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'bandpass';
         filter.Q.value = 5;
         
         osc.type = 'triangle';
-        // Random pitch slide down
         const startFreq = 180 + Math.random() * 80;
         osc.frequency.setValueAtTime(startFreq, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.08);
@@ -95,7 +151,7 @@ class SoundEngine {
 
         osc.connect(filter);
         filter.connect(gain);
-        gain.connect(this.ctx.destination);
+        gain.connect(this.masterGain);
 
         osc.start();
         osc.stop(this.ctx.currentTime + 0.1);
@@ -103,17 +159,12 @@ class SoundEngine {
     }
   }
 
-  /**
-   * Play Pawn Lift Sound:
-   * Sweeps the frequency upward to denote vertical lifting
-   */
   playLift() {
     const sound = this.createOscillator('sine', 200, 0.35, 0.12);
     if (!sound) return;
 
     const { osc } = sound;
     const now = this.ctx.currentTime;
-    // Sweep frequency upward
     osc.frequency.setValueAtTime(200, now);
     osc.frequency.exponentialRampToValueAtTime(520, now + 0.3);
 
@@ -121,15 +172,11 @@ class SoundEngine {
     osc.stop(now + 0.35);
   }
 
-  /**
-   * Play Correct Match Sound:
-   * Ascending arpeggio chime representing success
-   */
   playMatch() {
     if (this.muted) return;
     this.initContext();
 
-    const notes = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+    const notes = [261.63, 329.63, 392.00, 523.25];
     const now = this.ctx.currentTime;
 
     notes.forEach((freq, index) => {
@@ -141,30 +188,24 @@ class SoundEngine {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, now + delay);
       
-      // Volume envelope with slight overlap
       gain.gain.setValueAtTime(0, now + delay);
       gain.gain.linearRampToValueAtTime(0.15, now + delay + 0.02);
       gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.45);
       
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain);
       
       osc.start(now + delay);
       osc.stop(now + delay + 0.5);
     });
   }
 
-  /**
-   * Play Wrong Match Sound:
-   * Low discordant buzz
-   */
   playMismatch() {
     if (this.muted) return;
     this.initContext();
 
     const now = this.ctx.currentTime;
     
-    // Detuned oscillators to make a harsh buzz
     const osc1 = this.ctx.createOscillator();
     const osc2 = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -182,7 +223,7 @@ class SoundEngine {
 
     osc1.connect(gain);
     osc2.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this.masterGain);
 
     osc1.start();
     osc2.start();
@@ -190,17 +231,12 @@ class SoundEngine {
     osc2.stop(now + 0.45);
   }
 
-  /**
-   * Play Score Sound:
-   * A short high-frequency double chime
-   */
   playScore() {
     if (this.muted) return;
     this.initContext();
 
     const now = this.ctx.currentTime;
     
-    // First high note, then second even higher
     const triggerChime = (freq, delay, vol) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
@@ -218,20 +254,16 @@ class SoundEngine {
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain);
 
       osc.start(now + delay);
       osc.stop(now + delay + 0.35);
     };
 
-    triggerChime(880, 0, 0.12);      // A5
-    triggerChime(1318.51, 0.06, 0.12); // E6
+    triggerChime(880, 0, 0.12);
+    triggerChime(1318.51, 0.06, 0.12);
   }
 
-  /**
-   * Play Turn Change Sound:
-   * Fast sweeping pop
-   */
   playTurnChange() {
     const sound = this.createOscillator('triangle', 350, 0.15, 0.08);
     if (!sound) return;
@@ -245,21 +277,17 @@ class SoundEngine {
     osc.stop(now + 0.15);
   }
 
-  /**
-   * Play Victory Fanfare:
-   * Musical tune representing the winner's celebration
-   */
   playVictory() {
     if (this.muted) return;
     this.initContext();
 
     const melody = [
-      { note: 261.63, duration: 0.12 }, // C4
-      { note: 329.63, duration: 0.12 }, // E4
-      { note: 392.00, duration: 0.12 }, // G4
-      { note: 523.25, duration: 0.24 }, // C5
-      { note: 392.00, duration: 0.12 }, // G4
-      { note: 523.25, duration: 0.48 }  // C5 (Hold)
+      { note: 261.63, duration: 0.12 },
+      { note: 329.63, duration: 0.12 },
+      { note: 392.00, duration: 0.12 },
+      { note: 523.25, duration: 0.24 },
+      { note: 392.00, duration: 0.12 },
+      { note: 523.25, duration: 0.48 }
     ];
 
     const now = this.ctx.currentTime;
@@ -278,7 +306,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.0001, playTime + item.duration - 0.02);
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this.masterGain);
 
       osc.start(playTime);
       osc.stop(playTime + item.duration);
@@ -288,5 +316,4 @@ class SoundEngine {
   }
 }
 
-// Instantiate globally
 window.AudioEngine = new SoundEngine();

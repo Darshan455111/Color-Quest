@@ -1,25 +1,18 @@
-/**
- * Color Quest - User Interface & Particle Engine Manager
- * Coordinates DOM binding, screens swaps, canvas confetti, and board rendering.
- */
 class UIManager {
   constructor() {
     this.game = new Game();
     this.board = new Board();
     this.die = new Die();
 
-    // Link engine references
     this.game.board = this.board;
     this.game.die = this.die;
 
-    // Particle system state
     this.canvas = document.getElementById('particle-canvas');
     this.ctx = this.canvas.getContext('2d');
     this.particles = [];
     this.animationFrameId = null;
     this.victoryConfettiActive = false;
 
-    // Active player count state (default 3)
     this.playerCount = 3;
 
     this.init();
@@ -28,8 +21,11 @@ class UIManager {
   init() {
     this.resizeCanvas();
     window.addEventListener('resize', () => this.resizeCanvas());
+    
+    if (window.AudioEngine) {
+      window.AudioEngine.setupToggleUI();
+    }
 
-    // Bind Game Logic callbacks
     this.game.onStateChange = () => this.updateUIState();
     this.game.onLog = (msg, type) => this.appendLog(msg, type);
     this.game.onMatch = (pawn, playerIndex) => this.handleMatch(pawn, playerIndex);
@@ -37,22 +33,48 @@ class UIManager {
     this.game.onGameOver = (standings, text) => this.handleGameOver(standings, text);
     this.game.onTurnChange = (newTurnIndex) => this.handleTurnChange(newTurnIndex);
 
-    // Setup interactive events
     this.bindMenuEvents();
     this.bindGameplayEvents();
     this.bindModalEvents();
     this.checkResumeAvailability();
+    this.initTheme();
 
-    // Generate initial name fields
+    if (this.game.hasSavedGame()) {
+      this.switchScreen('game-screen');
+      const loaded = this.game.loadGame();
+      if (!loaded) {
+        this.switchScreen('main-menu');
+      }
+    }
+
     this.renderNameInputFields(this.playerCount);
-
-    // Start rendering particle ticks
     this.tickParticles();
   }
 
-  /* ==========================================================================
-     CANVAS CONFETTI ENGINE
-     ========================================================================== */
+  initTheme() {
+    const savedTheme = localStorage.getItem('color_quest_theme') || 'dark';
+    if (savedTheme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+    this.updateThemeButtonsUI();
+  }
+
+  toggleTheme() {
+    const isDark = document.body.classList.toggle('dark-theme');
+    localStorage.setItem('color_quest_theme', isDark ? 'dark' : 'light');
+    this.updateThemeButtonsUI();
+  }
+
+  updateThemeButtonsUI() {
+    const isDark = document.body.classList.contains('dark-theme');
+    const label = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+      btn.innerText = label;
+    });
+  }
+
   resizeCanvas() {
     if (this.canvas) {
       this.canvas.width = window.innerWidth;
@@ -60,9 +82,6 @@ class UIManager {
     }
   }
 
-  /**
-   * Spawns particle burst at screen coordinates
-   */
   spawnMatchParticles(x, y, color) {
     const count = 40;
     const hex = this.getColorHex(color);
@@ -75,7 +94,7 @@ class UIManager {
         x: x,
         y: y,
         vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - (1 + Math.random() * 3), // lift factor
+        vy: Math.sin(angle) * speed - (1 + Math.random() * 3),
         radius: 3 + Math.random() * 5,
         color: hex,
         opacity: 1,
@@ -86,15 +105,11 @@ class UIManager {
     }
   }
 
-  /**
-   * Spawns victory screen shower bursts from left & right corners
-   */
   spawnVictoryShower() {
     if (!this.victoryConfettiActive) return;
 
     const colors = ['#ff4757', '#00d2fc', '#2ed573', '#ffa502', '#ff7f50', '#9b59b6', '#ffd700'];
     
-    // Spawn left corner (shooting rightwards)
     if (Math.random() < 0.25) {
       this.particles.push({
         x: 0,
@@ -110,7 +125,6 @@ class UIManager {
       });
     }
 
-    // Spawn right corner (shooting leftwards)
     if (Math.random() < 0.25) {
       this.particles.push({
         x: window.innerWidth,
@@ -126,27 +140,21 @@ class UIManager {
       });
     }
 
-    // Schedule next burst
     requestAnimationFrame(() => this.spawnVictoryShower());
   }
 
-  /**
-   * Physics update & render tick (runs constantly at 60fps)
-   */
   tickParticles() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       
-      // Physics calculations
       p.vx *= p.friction;
       p.vy += p.gravity;
       p.x += p.vx;
       p.y += p.vy;
       p.opacity -= p.decay;
 
-      // Draw particle
       this.ctx.save();
       this.ctx.globalAlpha = p.opacity;
       this.ctx.fillStyle = p.color;
@@ -157,7 +165,6 @@ class UIManager {
       this.ctx.fill();
       this.ctx.restore();
 
-      // Remove dead particles
       if (p.opacity <= 0 || p.x < 0 || p.x > this.canvas.width || p.y > this.canvas.height) {
         this.particles.splice(i, 1);
       }
@@ -170,21 +177,14 @@ class UIManager {
     const colors = {
       'Red': '#ff0000',
       'Blue': '#0000ff',
-      'Green': '#00ff00',
+      'Green': '#00aa00',
       'Yellow': '#ffff00',
-      'Orange': '#ff7f00',
+      'Pink': '#ff00ff',
       'Purple': '#800080'
     };
     return colors[colorName] || colorName;
   }
 
-  /* ==========================================================================
-     DOM UI BINDINGS
-     ========================================================================== */
-  
-  /**
-   * Checks if a local storage save file exists, showing resume buttons
-   */
   checkResumeAvailability() {
     const btnMenu = document.getElementById('load-saved-btn');
     if (this.game.hasSavedGame()) {
@@ -194,11 +194,7 @@ class UIManager {
     }
   }
 
-  /**
-   * Main Menu listeners
-   */
   bindMenuEvents() {
-    // Player Count Buttons
     const countBtns = document.querySelectorAll('.count-btn');
     countBtns.forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -210,19 +206,21 @@ class UIManager {
       });
     });
 
-    // Start Game Button
     document.getElementById('start-game-btn').addEventListener('click', () => {
-      // Gather Player Names
       const nameInputs = document.querySelectorAll('.player-name-input');
-      const names = Array.from(nameInputs).map(input => input.value || input.placeholder);
+      const configs = Array.from(nameInputs).map((input, i) => {
+        const isBot = document.getElementById(`checkbox-bot-${i}`).checked;
+        return {
+          name: input.value || input.placeholder,
+          isComputer: isBot
+        };
+      });
       
-      // Swap Screen and Launch Game
       this.switchScreen('game-screen');
-      this.game.startNewGame(names);
+      this.game.startNewGame(configs);
       this.checkResumeAvailability();
     });
 
-    // Resume Save Button
     document.getElementById('load-saved-btn').addEventListener('click', () => {
       this.switchScreen('game-screen');
       const loaded = this.game.loadGame();
@@ -233,22 +231,20 @@ class UIManager {
       }
     });
 
-    // Rules Menu Trigger
     document.getElementById('rules-btn').addEventListener('click', () => {
       this.showModal('rules-modal');
     });
+
+    document.getElementById('menu-theme-toggle').addEventListener('click', () => {
+      this.toggleTheme();
+    });
   }
 
-  /**
-   * Gameplay screen controls
-   */
   bindGameplayEvents() {
-    // Roll Die Button
     document.getElementById('roll-die-btn').addEventListener('click', () => {
       this.game.rollDie();
     });
 
-    // Header Actions
     document.getElementById('pause-btn').addEventListener('click', () => {
       this.showModal('pause-modal');
     });
@@ -257,23 +253,31 @@ class UIManager {
       this.showModal('rules-modal');
     });
 
-    document.getElementById('restart-game-btn').addEventListener('click', () => {
-      if (confirm('Are you sure you want to restart? This resets scores and shuffles pawns.')) {
-        this.game.startNewGame(this.game.players.map(p => p.name));
+    document.getElementById('header-theme-toggle').addEventListener('click', () => {
+      this.toggleTheme();
+    });
+
+    document.getElementById('restart-game-btn').addEventListener('click', async () => {
+      const confirmed = await this.showConfirm('Are you sure you want to restart? This resets scores and shuffles pawns.', 'Restart Match?');
+      if (confirmed) {
+        const configs = this.game.players.map(p => ({
+          name: p.name,
+          isComputer: p.isComputer
+        }));
+        this.game.startNewGame(configs);
       }
     });
 
-    document.getElementById('quit-game-btn').addEventListener('click', () => {
-      if (confirm('Exit current match and return to Main Menu? Unsaved progress will be lost.')) {
+    document.getElementById('quit-game-btn').addEventListener('click', async () => {
+      const confirmed = await this.showConfirm('Exit current match and return to Main Menu? Unsaved progress will be lost.', 'Quit Match?');
+      if (confirmed) {
         this.switchScreen('main-menu');
         this.checkResumeAvailability();
       }
     });
 
-    // Pawn Board Clicking Event Delegation
     const boardEl = document.getElementById('circular-board');
     boardEl.addEventListener('click', (e) => {
-      // Traverse up to find clicked board-hole or pawn-3d
       const hole = e.target.closest('.board-hole');
       if (hole && !hole.classList.contains('empty')) {
         const index = parseInt(hole.getAttribute('data-hole-index'));
@@ -282,51 +286,68 @@ class UIManager {
     });
   }
 
-  /**
-   * Modal trigger options
-   */
   bindModalEvents() {
-    // General closes
     document.getElementById('rules-close-btn').addEventListener('click', () => this.hideModal('rules-modal'));
     document.getElementById('rules-understand-btn').addEventListener('click', () => this.hideModal('rules-modal'));
     
-    // Pause Overlay
     document.getElementById('resume-btn').addEventListener('click', () => this.hideModal('pause-modal'));
     
     document.getElementById('save-game-btn').addEventListener('click', () => {
       this.game.saveGame();
-      alert('Game progress saved!');
-      this.hideModal('pause-modal');
-      this.checkResumeAvailability();
+      const saveBtn = document.getElementById('save-game-btn');
+      const originalText = saveBtn.innerText;
+      saveBtn.innerText = '✔️ Saved!';
+      saveBtn.style.background = '#27ae60';
+      saveBtn.style.color = '#ffffff';
+      saveBtn.disabled = true;
+      
+      setTimeout(() => {
+        saveBtn.innerText = originalText;
+        saveBtn.style.background = '';
+        saveBtn.style.color = '';
+        saveBtn.disabled = false;
+        this.hideModal('pause-modal');
+        this.checkResumeAvailability();
+      }, 1000);
     });
     
     document.getElementById('pause-rules-btn').addEventListener('click', () => {
       this.showModal('rules-modal');
     });
     
-    document.getElementById('pause-restart-btn').addEventListener('click', () => {
-      if (confirm('Restart game from scratch?')) {
+    document.getElementById('pause-restart-btn').addEventListener('click', async () => {
+      const confirmed = await this.showConfirm('Restart game from scratch?', 'Restart Match?');
+      if (confirmed) {
         this.hideModal('pause-modal');
-        this.game.startNewGame(this.game.players.map(p => p.name));
+        const configs = this.game.players.map(p => ({
+          name: p.name,
+          isComputer: p.isComputer
+        }));
+        this.game.startNewGame(configs);
       }
     });
     
-    document.getElementById('pause-quit-btn').addEventListener('click', () => {
-      if (confirm('Return to main menu?')) {
+    document.getElementById('pause-quit-btn').addEventListener('click', async () => {
+      const confirmed = await this.showConfirm('Return to main menu?', 'Exit Match?');
+      if (confirmed) {
         this.hideModal('pause-modal');
         this.switchScreen('main-menu');
         this.checkResumeAvailability();
       }
     });
 
-    // Victory Overlays
     document.getElementById('play-again-btn').addEventListener('click', () => {
       this.hideModal('victory-modal');
       this.victoryConfettiActive = false;
-      this.game.startNewGame(this.game.players.map(p => p.name));
+      const configs = this.game.players.map(p => ({
+        name: p.name,
+        isComputer: p.isComputer
+      }));
+      this.game.startNewGame(configs);
     });
 
     document.getElementById('victory-exit-btn').addEventListener('click', () => {
+      this.game.clearSave();
       this.hideModal('victory-modal');
       this.victoryConfettiActive = false;
       this.switchScreen('main-menu');
@@ -334,9 +355,6 @@ class UIManager {
     });
   }
 
-  /**
-   * Helper to switch screens
-   */
   switchScreen(screenId) {
     const screens = document.querySelectorAll('.screen');
     screens.forEach(s => s.classList.remove('active'));
@@ -355,9 +373,35 @@ class UIManager {
     if (modal) modal.classList.remove('active');
   }
 
-  /**
-   * Renders input forms in Main Menu dynamically based on player count
-   */
+  showConfirm(message, title = 'Confirm Action') {
+    return new Promise((resolve) => {
+      document.getElementById('confirm-title').innerText = title;
+      document.getElementById('confirm-message').innerText = message;
+      
+      const modal = document.getElementById('confirm-modal');
+      modal.classList.add('active');
+      
+      const onYes = () => {
+        cleanup();
+        resolve(true);
+      };
+      
+      const onNo = () => {
+        cleanup();
+        resolve(false);
+      };
+      
+      const cleanup = () => {
+        modal.classList.remove('active');
+        document.getElementById('confirm-yes-btn').removeEventListener('click', onYes);
+        document.getElementById('confirm-no-btn').removeEventListener('click', onNo);
+      };
+      
+      document.getElementById('confirm-yes-btn').addEventListener('click', onYes);
+      document.getElementById('confirm-no-btn').addEventListener('click', onNo);
+    });
+  }
+
   renderNameInputFields(count) {
     const container = document.getElementById('names-fields-container');
     if (!container) return;
@@ -377,34 +421,60 @@ class UIManager {
       input.placeholder = `Player ${i + 1}`;
       input.id = `input-player-${i}`;
       
-      // Auto fill saved settings if any
       const savedName = localStorage.getItem(`color_quest_pname_${i}`);
       if (savedName) {
         input.value = savedName;
       }
 
-      // Track changes to persist names
       input.addEventListener('change', (e) => {
         localStorage.setItem(`color_quest_pname_${i}`, e.target.value);
       });
+
+      const cbLabel = document.createElement('label');
+      cbLabel.className = 'computer-checkbox-label';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'computer-checkbox';
+      checkbox.id = `checkbox-bot-${i}`;
+
+      const savedBot = localStorage.getItem(`color_quest_pbot_${i}`) === 'true';
+      checkbox.checked = savedBot;
+      if (savedBot) {
+        input.value = `Computer ${i + 1}`;
+        input.disabled = true;
+      }
+
+      checkbox.addEventListener('change', (e) => {
+        localStorage.setItem(`color_quest_pbot_${i}`, e.target.checked);
+        if (e.target.checked) {
+          input.value = `Computer ${i + 1}`;
+          input.disabled = true;
+        } else {
+          input.value = localStorage.getItem(`color_quest_pname_${i}`) || '';
+          input.placeholder = `Player ${i + 1}`;
+          input.disabled = false;
+        }
+      });
+
+      const cbText = document.createElement('span');
+      cbText.innerText = '🤖 Comp';
+      cbText.style.margin = '0';
+      cbText.style.width = 'auto';
+
+      cbLabel.appendChild(checkbox);
+      cbLabel.appendChild(cbText);
       
       group.appendChild(label);
       group.appendChild(input);
+      group.appendChild(cbLabel);
       container.appendChild(group);
     }
   }
 
-  /* ==========================================================================
-     GAMEPLAY STATE GRAPHIC RENDERING
-     ========================================================================== */
-
-  /**
-   * Redraws scoreboards, turn glows, text descriptions, and disables/enables roll buttons
-   */
   updateUIState() {
     const activePlayer = this.game.getActivePlayer();
     
-    // 1. Update scoreboard sidebar
     const listContainer = document.getElementById('players-list');
     listContainer.innerHTML = '';
 
@@ -418,7 +488,7 @@ class UIManager {
 
       const name = document.createElement('span');
       name.className = 'player-panel-name';
-      name.innerText = p.name;
+      name.innerText = (p.isComputer ? '🤖 ' : '') + p.name;
       name.title = p.name;
 
       const score = document.createElement('span');
@@ -436,7 +506,6 @@ class UIManager {
       collectedBox.className = 'collected-pawns-box';
       collectedBox.id = `collected-box-${p.id}`;
 
-      // Render dots representing collected pawn colors
       p.collectedPawns.forEach(color => {
         const dot = document.createElement('span');
         dot.className = 'tiny-pawn-dot';
@@ -460,7 +529,6 @@ class UIManager {
       listContainer.appendChild(card);
     });
 
-    // 2. Update central panel instructions
     const activeNameText = document.getElementById('active-player-name');
     activeNameText.innerText = activePlayer ? activePlayer.name : '-';
 
@@ -480,7 +548,6 @@ class UIManager {
       diceStatusText.innerText = this.game.phase === 'ROLLING' ? 'Roll to start turn' : 'Choosing pawn';
     }
 
-    // 3. Update turn instructions guide
     const instructionsText = document.getElementById('turn-action-instructions');
     if (this.game.phase === 'ROLLING') {
       instructionsText.innerText = `Click the Roll Die button in the center to get your target color.`;
@@ -493,49 +560,35 @@ class UIManager {
       rollBtn.setAttribute('disabled', 'true');
     }
 
-    // Auto-save game details when phases shift (except if victory screen handles it)
     if (this.game.phase !== 'GAME_OVER' && this.game.players.length > 0) {
       this.game.saveGame();
     }
   }
 
-  /**
-   * Action match logic: Triggers fly movement to sidebar and pops particles
-   */
   handleMatch(pawn, playerIndex) {
     const targetBox = document.getElementById(`collected-box-${playerIndex}`);
     if (!targetBox || !pawn.domElement) return;
 
-    // Get pawn center position on screen
     const rect = pawn.domElement.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
 
-    // Trigger visual confetti burst
     this.spawnMatchParticles(x, y, pawn.color);
 
-    // Slide pawn element to player score sidebar
     pawn.animateToCollection(targetBox, () => {
-      // Re-render state after animation concludes
       this.updateUIState();
     });
   }
 
   handleMismatch(pawn) {
-    // Mismatches display color for 2s (handled by JS state timeouts)
     this.updateUIState();
   }
 
   handleTurnChange(index) {
-    // Plays sound on slide (handled by State nextTurn)
     this.updateUIState();
   }
 
-  /**
-   * Show final ranking results and launch screen celebrations
-   */
   handleGameOver(standings, winnerText) {
-    // Delete save file since game is completed
     this.game.clearSave();
     this.checkResumeAvailability();
 
@@ -573,11 +626,9 @@ class UIManager {
       list.appendChild(row);
     });
 
-    // Toggle full screen confetti bursts
     this.victoryConfettiActive = true;
     this.spawnVictoryShower();
 
-    // Show Victory Screen
     setTimeout(() => {
       this.showModal('victory-modal');
     }, 1500);
@@ -588,7 +639,6 @@ class UIManager {
   }
 }
 
-// Bind load listener
 window.addEventListener('DOMContentLoaded', () => {
   window.App = new UIManager();
 });

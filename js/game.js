@@ -1,21 +1,16 @@
-/**
- * Color Quest - Game Logic Controller
- * Manages the state machine, turns, matching rules, and save/load state.
- */
 class Game {
   constructor() {
-    this.players = [];          // Array of player objects
-    this.currentTurn = 0;       // Index of the current player
-    this.board = null;          // Board controller instance
-    this.die = null;            // Die controller instance
+    this.players = [];
+    this.currentTurn = 0;
+    this.board = null;
+    this.die = null;
+    this.activeTimeouts = [];
     
-    // State machine properties
-    this.phase = 'ROLLING';     // 'ROLLING', 'CHOOSING', 'REVEALING', 'GAME_OVER'
-    this.rolledColor = null;    // Color of the die roll: Red, Blue, etc.
-    this.selectedPawn = null;   // The currently selected Pawn object
+    this.phase = 'ROLLING';
+    this.rolledColor = null;
+    this.selectedPawn = null;
     this.remainingPawns = 24;
     
-    // Callback event hooks bound by UI manager
     this.onStateChange = null;
     this.onLog = null;
     this.onMatch = null;
@@ -24,17 +19,31 @@ class Game {
     this.onTurnChange = null;
   }
 
-  /**
-   * Initializes a brand new game
-   * @param {Array<string>} playerNames - Array of user names
-   */
-  startNewGame(playerNames) {
-    this.players = playerNames.map((name, index) => ({
+  scheduleTimeout(callback, delay) {
+    const id = setTimeout(() => {
+      this.activeTimeouts = this.activeTimeouts.filter(tId => tId !== id);
+      callback();
+    }, delay);
+    this.activeTimeouts.push(id);
+    return id;
+  }
+
+  clearAllTimeouts() {
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeTimeouts = [];
+  }
+
+  startNewGame(playersConfig) {
+    this.clearAllTimeouts();
+
+    this.players = playersConfig.map((config, index) => ({
       id: index,
-      name: name.trim() || `Player ${index + 1}`,
+      name: config.name.trim() || `Player ${index + 1}`,
+      isComputer: !!config.isComputer,
       score: 0,
       collectedPawns: [],
-      turnStatus: index === 0
+      turnStatus: index === 0,
+      aiMemory: []
     }));
 
     this.currentTurn = 0;
@@ -43,38 +52,32 @@ class Game {
     this.selectedPawn = null;
     this.remainingPawns = 24;
 
-    this.log(`New Game started with ${this.players.length} players!`, 'system');
+    const botCount = this.players.filter(p => p.isComputer).length;
+    this.log(`New Game started with ${this.players.length} players! (Humans: ${this.players.length - botCount}, Bots: ${botCount})`, 'system');
 
-    // Create a fresh board and shuffle pawns
     this.board.initHoles();
     this.shuffleAndPlacePawns();
     this.die.reset();
 
     this.notifyState();
+    this.checkComputerTurn();
   }
 
-  /**
-   * Fisher-Yates Shuffling of 24 pawns (4 of each of the 6 colors)
-   * Places them in the board's 24 holes
-   */
   shuffleAndPlacePawns() {
-    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Purple'];
+    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
     const pawnPool = [];
 
-    // Create 24 colors
     colors.forEach(color => {
       for (let i = 0; i < 4; i++) {
         pawnPool.push(color);
       }
     });
 
-    // Fisher-Yates shuffle
     for (let i = pawnPool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pawnPool[i], pawnPool[j]] = [pawnPool[j], pawnPool[i]];
     }
 
-    // Place them into holes
     pawnPool.forEach((color, index) => {
       const pawn = new Pawn(index, color, index);
       this.board.placePawn(pawn, index);
@@ -83,16 +86,13 @@ class Game {
     this.log('The board has been set. The hidden colors are randomized!', 'info');
   }
 
-  /**
-   * Rolls the color die to start the player's choice phase
-   */
   rollDie() {
     if (this.phase !== 'ROLLING') return;
 
-    this.phase = 'REVEALING'; // Temporary lock clicking during spin
+    this.phase = 'REVEALING';
     this.notifyState();
 
-    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Purple'];
+    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple'];
     const rollResult = colors[Math.floor(Math.random() * colors.length)];
 
     this.die.roll(rollResult, (color) => {
@@ -100,107 +100,112 @@ class Game {
       this.phase = 'CHOOSING';
       this.log(`${this.getActivePlayer().name} rolled ${color}!`, 'turn');
       this.notifyState();
+
+      if (this.getActivePlayer().isComputer) {
+        this.makeComputerChoice();
+      }
     });
   }
 
-  /**
-   * Handles user selecting/lifting a pawn
-   * @param {number} holeIndex - Index of the clicked hole
-   */
   selectPawn(holeIndex) {
     if (this.phase !== 'CHOOSING') return;
 
     const hole = this.board.holes[holeIndex];
     if (!hole || !hole.occupied || !hole.pawn) return;
 
-    this.phase = 'REVEALING'; // Lock other interactions
+    this.phase = 'REVEALING';
     const pawn = hole.pawn;
     this.selectedPawn = pawn;
 
-    // Animate lifting
     pawn.lift();
     this.log(`${this.getActivePlayer().name} selected a pawn...`, 'info');
 
-    // Run check rule after the lift animation settles (e.g. 800ms)
-    setTimeout(() => {
+    this.scheduleTimeout(() => {
       this.checkMatch();
     }, 1000);
   }
 
-  /**
-   * Verifies if the revealed pawn matches the target die color
-   */
   checkMatch() {
     const activePlayer = this.getActivePlayer();
     const pawn = this.selectedPawn;
 
     if (pawn.color === this.rolledColor) {
-      // 1. Success Match!
       this.log(`MATCH! Found a ${pawn.color} pawn. ${activePlayer.name} gets 1 point and an extra turn!`, 'match');
       
       activePlayer.score += 1;
       activePlayer.collectedPawns.push(pawn.color);
       this.remainingPawns -= 1;
 
-      // Trigger success sound (score / match combination)
       window.AudioEngine.playMatch();
-      setTimeout(() => {
+      this.scheduleTimeout(() => {
         window.AudioEngine.playScore();
       }, 350);
 
-      // Remove from board logic
       this.board.clearHole(pawn.holeIndex);
 
-      // Trigger UI flying animations hook
+      this.players.forEach(p => {
+        if (p.isComputer && p.aiMemory) {
+          p.aiMemory = p.aiMemory.filter(mem => mem.holeIndex !== pawn.holeIndex);
+        }
+      });
+
       if (this.onMatch) {
         this.onMatch(pawn, activePlayer.id);
       }
 
-      // Check for Game Over
       if (this.remainingPawns === 0) {
-        setTimeout(() => {
+        this.scheduleTimeout(() => {
           this.endGame();
         }, 1200);
         return;
       }
 
-      // Setup for Extra Turn
-      setTimeout(() => {
+      this.scheduleTimeout(() => {
         this.phase = 'ROLLING';
         this.rolledColor = null;
         this.selectedPawn = null;
         this.die.reset();
         this.notifyState();
+        this.checkComputerTurn();
       }, 1100);
 
     } else {
-      // 2. Failed Match!
       this.log(`MISS! Pawn is ${pawn.color}. Turn passes clockwise.`, 'miss');
       
       window.AudioEngine.playMismatch();
 
-      // Trigger mismatch visual alert or UI hook if any
+      this.players.forEach(p => {
+        if (p.isComputer && p.aiMemory) {
+          const existingIdx = p.aiMemory.findIndex(mem => mem.holeIndex === pawn.holeIndex);
+          if (existingIdx !== -1) {
+            p.aiMemory[existingIdx].color = pawn.color;
+          } else {
+            p.aiMemory.push({ holeIndex: pawn.holeIndex, color: pawn.color });
+          }
+          
+          if (p.aiMemory.length > 5) {
+            p.aiMemory.shift();
+          }
+        }
+      });
+
       if (this.onMismatch) {
         this.onMismatch(pawn);
       }
 
-      // Wait 2 seconds with pawn revealed, then return it and swap turn
-      setTimeout(() => {
+      this.scheduleTimeout(() => {
         pawn.lower();
         
-        setTimeout(() => {
+        this.scheduleTimeout(() => {
           this.selectedPawn = null;
           this.rolledColor = null;
           this.die.reset();
           this.nextTurn();
-        }, 600); // Wait for pawn descent transition to complete
+        }, 600);
       }, 2000);
     }
   }
 
-  /**
-   * Pass turn clockwise to the next player
-   */
   nextTurn() {
     this.players[this.currentTurn].turnStatus = false;
     this.currentTurn = (this.currentTurn + 1) % this.players.length;
@@ -216,19 +221,64 @@ class Game {
     }
 
     this.notifyState();
+    this.checkComputerTurn();
   }
 
-  /**
-   * Trigger victory calculations and rankings
-   */
+  checkComputerTurn() {
+    if (this.phase === 'GAME_OVER') return;
+
+    const activePlayer = this.getActivePlayer();
+    if (activePlayer && activePlayer.isComputer) {
+      this.phase = 'REVEALING';
+      this.notifyState();
+
+      this.scheduleTimeout(() => {
+        if (this.phase !== 'REVEALING' || !this.getActivePlayer().isComputer) return;
+        this.phase = 'ROLLING';
+        this.rollDie();
+      }, 1200);
+    }
+  }
+
+  makeComputerChoice() {
+    this.phase = 'REVEALING';
+    this.notifyState();
+
+    const activePlayer = this.getActivePlayer();
+    const targetColor = this.rolledColor;
+    let chosenHoleIndex = -1;
+
+    const matchingMemory = activePlayer.aiMemory.filter(mem => {
+      const hole = this.board.holes[mem.holeIndex];
+      return hole && hole.occupied && hole.pawn && hole.pawn.color === targetColor;
+    });
+
+    if (matchingMemory.length > 0) {
+      chosenHoleIndex = matchingMemory[0].holeIndex;
+      this.log(`🤖 Computer ${activePlayer.name} remembered a ${targetColor} pawn in hole #${chosenHoleIndex + 1}!`, 'info');
+    } else {
+      const occupiedHoles = this.board.holes.filter(h => h.occupied);
+      if (occupiedHoles.length > 0) {
+        const randomHole = occupiedHoles[Math.floor(Math.random() * occupiedHoles.length)];
+        chosenHoleIndex = randomHole.id;
+        this.log(`🤖 Computer ${activePlayer.name} searched blindly...`, 'info');
+      }
+    }
+
+    this.scheduleTimeout(() => {
+      if (chosenHoleIndex !== -1 && this.getActivePlayer().isComputer) {
+        this.phase = 'CHOOSING';
+        this.selectPawn(chosenHoleIndex);
+      }
+    }, 1500);
+  }
+
   endGame() {
     this.phase = 'GAME_OVER';
     this.log('The board is empty. Game Over!', 'system');
     
-    // Sort players by score descending
     const standings = [...this.players].sort((a, b) => b.score - a.score);
     
-    // Check if there's a tie
     const maxScore = standings[0].score;
     const winners = standings.filter(p => p.score === maxScore);
     
@@ -246,12 +296,10 @@ class Game {
       this.onGameOver(standings, winnerText);
     }
 
+    this.clearSave();
     this.notifyState();
   }
 
-  /**
-   * Save the current game state to localStorage
-   */
   saveGame() {
     const saveState = {
       players: this.players,
@@ -267,7 +315,7 @@ class Game {
             holeIndex: hole.pawn.holeIndex
           };
         }
-        return null; // Empty
+        return null;
       })
     };
 
@@ -275,24 +323,25 @@ class Game {
     this.log('Game progress saved successfully.', 'info');
   }
 
-  /**
-   * Loads game state from localStorage
-   * @returns {boolean} - Success flag
-   */
   loadGame() {
+    this.clearAllTimeouts();
+
     const savedStr = localStorage.getItem('color_quest_save_game');
     if (!savedStr) return false;
 
     try {
       const state = JSON.parse(savedStr);
       
-      this.players = state.players;
+      this.players = state.players.map(p => ({
+        ...p,
+        isComputer: !!p.isComputer,
+        aiMemory: p.aiMemory || []
+      }));
       this.currentTurn = state.currentTurn;
       this.phase = state.phase;
       this.rolledColor = state.rolledColor;
       this.remainingPawns = state.remainingPawns;
 
-      // Rebuild board holes
       this.board.initHoles();
       state.boardLayout.forEach((pawnData, index) => {
         if (pawnData) {
@@ -303,7 +352,6 @@ class Game {
         }
       });
 
-      // Synchronize die face orientation
       if (this.rolledColor) {
         const targetRot = this.die.rotations[this.rolledColor];
         this.die.currentRotation = { x: targetRot.x, y: targetRot.y, z: 0 };
@@ -314,6 +362,8 @@ class Game {
 
       this.log('Resumed game session from auto-save.', 'system');
       this.notifyState();
+
+      this.checkComputerTurn();
       return true;
     } catch (err) {
       console.error('Error loading game state:', err);
@@ -321,17 +371,12 @@ class Game {
     }
   }
 
-  /**
-   * Helper to check if save exists
-   */
   hasSavedGame() {
     return localStorage.getItem('color_quest_save_game') !== null;
   }
 
-  /**
-   * Deletes save game from storage
-   */
   clearSave() {
+    this.clearAllTimeouts();
     localStorage.removeItem('color_quest_save_game');
   }
 
@@ -352,5 +397,4 @@ class Game {
   }
 }
 
-// Bind to window
 window.Game = Game;
