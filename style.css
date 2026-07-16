@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Color Quest - CSS Stylesheet (Light Theme)
+   Color Quest - CSS Stylesheet (Warm Cream & Oak Theme)
    ========================================================================== */
 
 /* Design Tokens & Theme Variables */
@@ -7,13 +7,13 @@
   --font-family-body: 'Outfit', sans-serif;
   --font-family-logo: 'Comfortaa', sans-serif;
 
-  /* Light Theme Colors */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #f1f5f9;
-  --panel-bg: rgba(255, 255, 255, 0.85);
-  --panel-border: rgba(0, 0, 0, 0.08);
-  --text-main: #0f172a;
-  --text-muted: #475569;
+  /* Warm Cream & Parchment Light Theme Colors */
+  --bg-primary: #f4efe2;
+  --bg-secondary: #e9e2ce;
+  --panel-bg: rgba(253, 251, 246, 0.92);
+  --panel-border: rgba(194, 183, 154, 0.4);
+  --text-main: #3e3321;
+  --text-muted: #7d6e53;
   
   /* Dice/Pawn Color System (Pure Colors) */
   --clr-red: #ff0000;
@@ -24,21 +24,21 @@
   --clr-purple: #800080;
   --clr-empty: rgba(0, 0, 0, 0.05);
 
-  /* Pawn Metallic Colors (Identical Bright Outer Face) */
+  /* Pawn Metallic Colors (Identical Warm Outer Face) */
   --pawn-metal-top: #ffffff;
-  --pawn-metal-mid: #cbd5e1;
-  --pawn-metal-bot: #64748b;
-  --pawn-glow: rgba(0, 0, 0, 0.04);
+  --pawn-metal-mid: #d2c8b0;
+  --pawn-metal-bot: #7a6e55;
+  --pawn-glow: rgba(0, 0, 0, 0.03);
 
   /* UI Accents */
-  --accent-gold: #c68a00;
-  --btn-hover-glow: rgba(0, 180, 219, 0.15);
-  --active-glow: 0 0 25px rgba(0, 180, 219, 0.25);
+  --accent-gold: #b87c00;
+  --btn-hover-glow: rgba(127, 92, 50, 0.12);
+  --active-glow: 0 0 25px rgba(184, 124, 0, 0.3);
   
   /* Transition Speeds */
   --transition-fast: 0.2s ease;
   --transition-medium: 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --transition-slow: 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  --transition-slow: 0.85s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 /* Base Setup */
@@ -53,8 +53,8 @@ body {
   font-family: var(--font-family-body);
   background-color: var(--bg-primary);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(203, 213, 225, 0.4) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(226, 232, 240, 0.6) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(220, 210, 185, 0.45) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(245, 240, 225, 0.85) 0px, transparent 50%);
   color: var(--text-main);
   min-height: 100vh;
   overflow: hidden;
@@ -85,7 +85,16 @@ body {
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+  background: rgba(253, 251, 246, 0.9);
+  border: 1px solid #c2b79a;
+  color: var(--text-main);
+  box-shadow: 0 4px 15px rgba(127, 92, 50, 0.08);
+}
+
+.float-btn:hover {
+  background: #eae4d0;
+  border-color: #a39778;
+  transform: translateY(-2px);
 }
 
 /* Screens Management */
@@ -116,12 +125,12 @@ body {
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--panel-border);
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px rgba(127, 92, 50, 0.08);
 }
 
 /* Typography Utilities */
 .gradient-text {
-  background: linear-gradient(135deg, #00b4db, #9b59b6, #e056fd);
+  background: linear-gradient(135deg, #a77e4b, #7f5c32, #b87c00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -138,8 +147,8 @@ button {
 }
 
 .glass-btn {
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #cbd5e1;
+  background: rgba(253, 251, 246, 0.9);
+  border: 1px solid #c2b79a;
   color: var(--text-main);
   padding: 10px 20px;
   border-radius: 12px;
@@ -150,8 +159,8 @@ button {
 }
 
 .glass-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: #eae4d0;
+  border-color: #a39778;
   transform: translateY(-2px);
 }
 
@@ -160,22 +169,22 @@ button {
 }
 
 .primary-btn {
-  background: linear-gradient(135deg, #00b4db, #0083b0);
+  background: linear-gradient(135deg, #a77e4b, #7f5c32);
   color: white;
   padding: 14px 28px;
   border-radius: 14px;
   font-size: 1.1rem;
-  box-shadow: 0 4px 15px rgba(0, 180, 219, 0.25);
+  box-shadow: 0 4px 15px rgba(127, 92, 50, 0.25);
 }
 
 .primary-btn:hover {
-  box-shadow: 0 6px 20px rgba(0, 180, 219, 0.4), 0 0 15px rgba(0, 180, 219, 0.15);
+  box-shadow: 0 6px 20px rgba(127, 92, 50, 0.4), 0 0 15px rgba(127, 92, 50, 0.15);
   transform: translateY(-3px);
 }
 
 .secondary-btn {
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   color: var(--text-main);
   padding: 14px 28px;
   border-radius: 14px;
@@ -183,15 +192,15 @@ button {
 }
 
 .secondary-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: #eae4d0;
+  border-color: #a39778;
   transform: translateY(-2px);
 }
 
 .danger-btn:hover {
-  background: rgba(244, 67, 54, 0.08) !important;
-  border-color: #f44336 !important;
-  color: #d32f2f !important;
+  background: rgba(127, 92, 50, 0.08) !important;
+  border-color: #7f5c32 !important;
+  color: #7f5c32 !important;
 }
 
 .center-self {
@@ -257,7 +266,7 @@ button {
 .count-btn {
   flex: 1;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   color: var(--text-muted);
   padding: 12px;
   border-radius: 10px;
@@ -265,10 +274,10 @@ button {
 }
 
 .count-btn.active {
-  background: rgba(0, 180, 219, 0.1);
-  border-color: #00b4db;
-  color: #0083b0;
-  box-shadow: 0 0 15px rgba(0, 180, 219, 0.1);
+  background: rgba(127, 92, 50, 0.15);
+  border-color: #7f5c32;
+  color: #7f5c32;
+  box-shadow: 0 0 15px rgba(127, 92, 50, 0.1);
 }
 
 .count-btn:hover:not(.active) {
@@ -290,15 +299,15 @@ button {
   display: flex;
   align-items: center;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   border-radius: 10px;
   padding: 2px 14px;
   transition: border-color var(--transition-fast);
 }
 
 .input-group:focus-within {
-  border-color: #00b4db;
-  box-shadow: 0 0 10px rgba(0, 180, 219, 0.15);
+  border-color: #7f5c32;
+  box-shadow: 0 0 10px rgba(127, 92, 50, 0.15);
 }
 
 .input-group span {
@@ -341,7 +350,7 @@ button {
 
 .game-header {
   height: 70px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(253, 251, 246, 0.9);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--panel-border);
   display: flex;
@@ -399,7 +408,7 @@ button {
 .panel-divider {
   border: 0;
   height: 1px;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(127, 92, 50, 0.08);
   margin: 20px 0;
 }
 
@@ -411,8 +420,8 @@ button {
 }
 
 .player-panel {
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
+  background: rgba(253, 251, 246, 0.85);
+  border: 1px solid #c2b79a;
   border-radius: 16px;
   padding: 16px;
   transition: all var(--transition-medium);
@@ -423,9 +432,9 @@ button {
 }
 
 .player-panel.active-turn {
-  background: rgba(0, 180, 219, 0.05);
-  border-color: rgba(0, 180, 219, 0.35);
-  box-shadow: 0 4px 15px rgba(0, 180, 219, 0.1);
+  background: rgba(127, 92, 50, 0.06);
+  border-color: rgba(127, 92, 50, 0.35);
+  box-shadow: 0 4px 15px rgba(127, 92, 50, 0.08);
   transform: scale(1.02);
 }
 
@@ -453,7 +462,7 @@ button {
 .player-panel-indicator {
   display: none;
   font-size: 0.75rem;
-  background: #00b4db;
+  background: #7f5c32;
   color: #ffffff;
   font-weight: 800;
   padding: 2px 8px;
@@ -472,9 +481,9 @@ button {
   gap: 6px;
   min-height: 24px;
   padding: 6px;
-  background: #f1f5f9;
+  background: #eae4d0;
   border-radius: 8px;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed #c2b79a;
 }
 
 .tiny-pawn-dot {
@@ -535,7 +544,7 @@ button {
   color: var(--text-muted);
   line-height: 1.45;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   padding: 12px 16px;
   border-radius: 10px;
   width: 100%;
@@ -565,35 +574,35 @@ button {
   width: 540px;
   height: 540px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fcfaf6 0%, #f4eee1 100%);
-  border: 12px solid #e6dcce;
+  background: radial-gradient(circle, #fcfaf5 0%, #ecdcb9 100%);
+  border: 12px solid #b89f74;
   box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.12),
+    0 15px 35px rgba(78, 62, 45, 0.2),
     inset 0 4px 12px rgba(255, 255, 255, 0.6),
     0 2px 8px rgba(0, 0, 0, 0.05);
   transform-style: preserve-3d;
   transition: transform 0.5s ease;
 }
 
-/* Outer boundary ring line */
+/* Board Outer boundary ring line */
 .circular-board::before {
   content: '';
   position: absolute;
   top: -6px; left: -6px; right: -6px; bottom: -6px;
   border-radius: 50%;
-  border: 2px solid rgba(203, 190, 168, 0.4);
+  border: 2px solid rgba(184, 159, 116, 0.4);
   pointer-events: none;
 }
 
-/* Board Holes (Alternating layout is positioned dynamically in board.js) */
+/* Board Holes well shapes */
 .board-hole {
   position: absolute;
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: #dfd8cb;
+  background: #cabba0;
   box-shadow: 
-    inset 0 3px 8px rgba(0, 0, 0, 0.28), 
+    inset 0 3px 8px rgba(0, 0, 0, 0.35), 
     0 1px 1px rgba(255, 255, 255, 0.6);
   display: flex;
   align-items: center;
@@ -613,7 +622,7 @@ button {
 
 .board-hole.empty::after {
   content: '✖';
-  color: rgba(0, 0, 0, 0.18);
+  color: rgba(62, 51, 33, 0.25);
   font-size: 0.75rem;
   display: flex;
   align-items: center;
@@ -630,8 +639,8 @@ button {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle, #fdfdfd 0%, #eae5da 100%);
-  border: 4px solid #dacfb8;
+  background: radial-gradient(circle, #fdfdfc 0%, #e6d8b8 100%);
+  border: 4px solid #c8b794;
   box-shadow: 0 4px 12px rgba(0,0,0,0.06), inset 0 2px 6px rgba(255,255,255,0.7);
   display: flex;
   flex-direction: column;
@@ -681,12 +690,12 @@ button {
 }
 
 /* ==========================================================================
-   3D PAWN ANIMATIONS & STYLE
+   3D PAWN ANIMATIONS & STYLE (CORRECTED AND PROPORTIONAL)
    ========================================================================== */
 .pawn-container {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  top: 1px; /* Centers 44px pawn container inside 46px hole (1px padding all around) */
+  left: 1px;
   width: 44px;
   height: 44px;
   transform-style: preserve-3d;
@@ -703,11 +712,11 @@ button {
   transition: transform var(--transition-slow);
 }
 
-/* Pawn Shadow underneath it */
+/* Pawn Shadow underneath it (Casts flat on the board floor at translateZ(-2px)) */
 .pawn-shadow {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(45, 35, 25, 0.35);
   border-radius: 50%;
   filter: blur(4px);
   transform: translateZ(-2px);
@@ -725,30 +734,30 @@ button {
 /* The visual bulb/handle on top (glossy white/silver metallic) */
 .pawn-bulb {
   position: absolute;
-  top: -12px;
-  left: 11px;
-  width: 22px;
-  height: 22px;
+  top: -10px;
+  left: 12px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%, var(--pawn-metal-top) 0%, var(--pawn-metal-mid) 70%, var(--pawn-metal-bot) 100%);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-  transform: translateZ(18px);
+  box-shadow: inset -2px -2px 6px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
+  transform: translateZ(16px);
 }
 
 /* The cylindrical body flare */
 .pawn-body-3d {
   position: absolute;
-  top: 4px;
-  left: 7px;
-  width: 30px;
-  height: 36px;
-  background: linear-gradient(to right, var(--pawn-metal-bot) 0%, var(--pawn-metal-top) 35%, var(--pawn-metal-mid) 75%, var(--pawn-metal-bot) 100%);
-  border-radius: 6px 6px 15px 15px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.18);
-  transform: translateZ(6px);
+  top: 5px;
+  left: 8px;
+  width: 28px;
+  height: 32px;
+  background: linear-gradient(to right, var(--pawn-metal-bot) 0%, var(--pawn-metal-top) 30%, var(--pawn-metal-mid) 75%, var(--pawn-metal-bot) 100%);
+  border-radius: 8px 8px 12px 12px;
+  box-shadow: inset -2px 0 5px rgba(0,0,0,0.15);
+  transform: translateZ(8px);
 }
 
-/* The base flange */
+/* The base flange rim */
 .pawn-base-rim {
   position: absolute;
   top: 2px;
@@ -757,7 +766,8 @@ button {
   height: 40px;
   border-radius: 50%;
   background: radial-gradient(circle, var(--pawn-metal-mid) 0%, var(--pawn-metal-bot) 100%);
-  border: 1.5px solid rgba(255,255,255,0.6);
+  border: 1.5px solid rgba(255,255,255,0.7);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   transform: translateZ(0);
 }
 
@@ -775,26 +785,27 @@ button {
   box-shadow: inset 0 0 10px rgba(0,0,0,0.4);
 }
 
-/* Pawn Hovering Styles */
+/* Pawn Hovering Styles: moves up gently in Z direction */
 .pawn-3d:hover {
-  transform: translateZ(10px) translateY(-3px);
+  transform: translateZ(6px) translateY(-2px);
 }
 .pawn-3d:hover + .pawn-shadow {
-  transform: translateZ(-2px) scale(1.15) translateY(2px);
-  background: rgba(0, 0, 0, 0.18);
-  filter: blur(4px);
+  transform: translateZ(-2px) scale(1.1);
+  background: rgba(45, 35, 25, 0.45);
+  filter: blur(5px);
 }
 
 /* LIFTED STATE: flips 160 degrees to reveal bottom color, scales up */
 .pawn-3d.lifted {
-  transform: translateZ(80px) translateY(-50px) rotateX(160deg) scale(1.25);
+  transform: translateZ(90px) translateY(-50px) rotateX(160deg);
   z-index: 1000;
 }
+/* Cast shadow flat on board floor, expanding and softening */
 .pawn-3d.lifted + .pawn-shadow {
-  transform: scale(0.6) translateY(25px);
-  background: rgba(0, 0, 0, 0.3);
-  filter: blur(8px);
-  opacity: 0.4;
+  transform: translateZ(-2px) scale(1.4);
+  background: rgba(45, 35, 25, 0.6);
+  filter: blur(10px);
+  opacity: 0.35;
 }
 
 /* MATCHED STATE: scales down and gets set to transparent/removed */
@@ -856,7 +867,7 @@ button {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(62, 51, 33, 0.35);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   z-index: 100;
@@ -924,7 +935,7 @@ button {
   display: flex;
   gap: 16px;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   padding: 16px;
   border-radius: 12px;
   align-items: center;
@@ -934,8 +945,8 @@ button {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(0, 180, 219, 0.1);
-  color: #0083b0;
+  background: rgba(127, 92, 50, 0.15);
+  color: #7f5c32;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -1004,7 +1015,7 @@ button {
   justify-content: space-between;
   align-items: center;
   background: #ffffff;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #c2b79a;
   padding: 12px 20px;
   border-radius: 12px;
   transition: background 0.3s;
@@ -1054,11 +1065,11 @@ button {
    ========================================================================== */
 @keyframes pulse-glow-light {
   0% {
-    box-shadow: 0 0 5px rgba(0, 180, 219, 0.3);
+    box-shadow: 0 0 5px rgba(127, 92, 50, 0.3);
     opacity: 0.8;
   }
   100% {
-    box-shadow: 0 0 15px rgba(0, 180, 219, 0.8);
+    box-shadow: 0 0 15px rgba(127, 92, 50, 0.7);
     opacity: 1;
   }
 }
@@ -1141,6 +1152,8 @@ button {
   .pawn-container {
     width: 30px;
     height: 30px;
+    top: 1px;
+    left: 1px;
   }
 
   .pawn-bulb {
@@ -1216,12 +1229,12 @@ button {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(0, 0, 0, 0.03);
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.08);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.15);
 }
