@@ -330,13 +330,19 @@ class UIManager {
       }
     });
 
-    document.getElementById('rules-btn').addEventListener('click', () => {
-      this.showModal('rules-modal');
-    });
+    const rulesBtn = document.getElementById('rules-btn');
+    if (rulesBtn) {
+      rulesBtn.addEventListener('click', () => {
+        this.showModal('rules-modal');
+      });
+    }
 
-    document.getElementById('menu-theme-toggle').addEventListener('click', () => {
-      this.toggleTheme();
-    });
+    const menuThemeToggle = document.getElementById('menu-theme-toggle');
+    if (menuThemeToggle) {
+      menuThemeToggle.addEventListener('click', () => {
+        this.toggleTheme();
+      });
+    }
   }
 
   bindGameplayEvents() {
